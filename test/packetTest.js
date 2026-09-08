@@ -57,6 +57,23 @@ const nbtValue = {
 
 function getFixedPacketPayload (version, packetName) {
   if (packetName === 'teams') {
+    if (version.majorVersion === '26.2') {
+      return {
+        team: 'test_team',
+        mode: 'add',
+        displayName: nbtValue,
+        prefix: nbtValue,
+        suffix: nbtValue,
+        nameTagVisibility: 'always',
+        collisionRule: 'always',
+        color: 0,
+        flags: {
+          friendly_fire: 1,
+          see_friendly_invisible: 1
+        },
+        players: ['player1', 'player2']
+      }
+    }
     if (version['>=']('1.21.6')) {
       return {
         team: 'test_team',
@@ -243,8 +260,17 @@ const values = {
   Slot: slotValue,
   UntrustedSlot: slotValue,
   HashedSlot: slotValue,
+  ItemStackTemplate: {
+    itemId: 1111,
+    itemCount: 1,
+    templateAddedComponentCount: 1,
+    templateRemovedComponentCount: 0,
+    components: [{ type: 'tooltip_display', data: { hideTooltip: true, hiddenComponents: [] } }],
+    removeComponents: []
+  },
   SlotComponent: {
-    type: 'hide_tooltip'
+    type: 'tooltip_display',
+    data: { hideTooltip: true, hiddenComponents: [] }
   },
   ChatTypes: {
     registryIndex: 1
@@ -449,10 +475,6 @@ const values = {
   GlobalPos: {
     dimensionName: 'minecraft:overworld',
     location: { x: 0, y: 64, z: 0 }
-  },
-  GameRule: {
-    name: '',
-    value: ''
   }
 }
 
@@ -532,13 +554,14 @@ for (const supportedVersion of mc.supportedVersions) {
 
     function testPacket (mcData, packetName, packetInfo, state, toServer, done) {
       // empty object uses default values
-      const packet = getFixedPacketPayload(mcData.version, packetName) || getValue(packetInfo, {})
+      const packet = getFixedPacketPayload(mcData.version, packetName) ||
+        (packetInfo === 'void' ? {} : getValue(packetInfo, {}))
       if (toServer) {
         console.log('Writing to server', packetName, JSON.stringify(packet))
         serverClient.once(packetName, function (receivedPacket) {
           console.log('Recv', packetName)
           try {
-            assertPacketsMatch(packet, receivedPacket)
+            assertPacketsMatch(packet, receivedPacket, packetInfo)
           } catch (e) {
             console.log(packet, receivedPacket)
             throw e
@@ -550,14 +573,22 @@ for (const supportedVersion of mc.supportedVersions) {
         console.log('Writing to client', packetName, JSON.stringify(packet))
         client.once(packetName, function (receivedPacket) {
           console.log('Recv', packetName)
-          assertPacketsMatch(packet, receivedPacket)
+          assertPacketsMatch(packet, receivedPacket, packetInfo)
           done()
         })
         serverClient.write(packetName, packet)
       }
     }
 
-    function assertPacketsMatch (p1, p2) {
+    function assertPacketsMatch (p1, p2, packetInfo) {
+      if (packetInfo === 'void') return
+      // Newer minecraft-data schemas can use a named container type for a
+      // packet instead of inlining the field list. In that case the decoded
+      // value is already the complete packet value, so compare it directly.
+      if (!Array.isArray(packetInfo)) {
+        assert.deepEqual(p1, p2)
+        return
+      }
       packetInfo.forEach(function (field) {
         assert.deepEqual(p1[field], p2[field])
       })

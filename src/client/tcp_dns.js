@@ -11,9 +11,7 @@ module.exports = function (client, options) {
       // Use stream if provided
       if (options.stream) {
         client.setSocket(options.stream)
-        // Defer so listeners registered after options.connect() (e.g. setProtocol,
-        // which starts the handshake) still see the event
-        process.nextTick(() => client.emit('connect'))
+        client.emit('connect')
         return
       }
 

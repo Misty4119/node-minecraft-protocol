@@ -180,12 +180,19 @@ module.exports = function (client, server, options) {
       client.write('compress', { threshold: 256 }) // Default threshold is 256
       client.compressionThreshold = 256
     }
-    // TODO: find out what properties are on 'success' packet
-    client.write('success', {
+    // 26.2 adds a server session UUID to login success. Keep one UUID per
+    // server instance so all players in the same multiplayer session receive
+    // the same value, matching vanilla's server_session_id semantics.
+    const success = {
       uuid: client.uuid,
       username: client.username,
       properties: []
-    })
+    }
+    if (client.protocolVersion >= 776) {
+      server.sessionId ||= crypto.randomUUID()
+      success.sessionId = server.sessionId
+    }
+    client.write('success', success)
     if (client.supportFeature('hasConfigurationState')) {
       client.once('login_acknowledged', onClientLoginAck)
     } else {

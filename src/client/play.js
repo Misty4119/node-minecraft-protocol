@@ -69,8 +69,7 @@ module.exports = function (client, options) {
         skinParts: clientSettings.skinParts ?? 127,
         mainHand: clientSettings.mainHand ?? 1,
         enableTextFiltering: clientSettings.enableTextFiltering ?? false,
-        enableServerListing: clientSettings.enableServerListing ?? true,
-        particleStatus: clientSettings.particleStatus ?? 'all'
+        enableServerListing: clientSettings.enableServerListing ?? true
       })
       client.once('select_known_packs', () => {
         client.write('select_known_packs', { packs: [] })

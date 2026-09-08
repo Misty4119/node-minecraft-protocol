@@ -45,7 +45,42 @@ function createProtocol (state, direction, version, customPackets, compiled = tr
 }
 
 function createSerializer ({ state = states.HANDSHAKING, isServer = false, version, customPackets, compiled = true } = {}) {
-  return new Serializer(createProtocol(state, !isServer ? 'toServer' : 'toClient', version, customPackets, compiled), 'packet')
+  const proto = createProtocol(state, !isServer ? 'toServer' : 'toClient', version, customPackets, compiled)
+  const serializer = new Serializer(proto, 'packet')
+  const mcData = minecraftData(version)
+
+  // Since 1.21.5, set_creative_slot uses UntrustedSlot. Its component type
+  // is still written normally, but the component payload is a length-prefixed
+  // byte array instead of the typed SlotComponent payload used by regular
+  // slots. Accept the public typed component shape here and encode the payload
+  // before it reaches the generated UntrustedSlot serializer.
+  if (!isServer && mcData.protocol.types.UntrustedSlotComponent) {
+    const createPacketBuffer = serializer.createPacketBuffer.bind(serializer)
+    serializer.createPacketBuffer = packet => createPacketBuffer(prepareUntrustedSlotPacket(packet, proto))
+  }
+
+  return serializer
+}
+
+function prepareUntrustedSlotPacket (packet, proto) {
+  if (packet?.name !== 'set_creative_slot' || !packet.params?.item?.components?.length) return packet
+
+  const item = packet.params.item
+  const components = item.components.map(component => {
+    if (Buffer.isBuffer(component.data)) return component
+
+    const encoded = proto.createPacketBuffer('SlotComponent', component)
+    const typeSize = proto.sizeOf(component.type, 'SlotComponentType')
+    return { ...component, data: encoded.subarray(typeSize) }
+  })
+
+  return {
+    ...packet,
+    params: {
+      ...packet.params,
+      item: { ...item, components }
+    }
+  }
 }
 
 function createDeserializer ({ state = states.HANDSHAKING, isServer = false, version, customPackets, compiled = true, noErrorLogging = false } = {}) {
