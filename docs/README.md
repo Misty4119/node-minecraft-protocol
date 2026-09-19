@@ -9,6 +9,27 @@
 
 Parse and serialize minecraft packets, plus authentication and encryption.
 
+## Repository guides
+
+This repository's canonical README is this file. The root README.md is ignored and generated from docs/README.md by the prepublishOnly script.
+
+- [Agent instructions](https://github.com/Misty4119/node-minecraft-protocol/blob/master/AGENTS.md)
+- [Repository context](https://github.com/Misty4119/node-minecraft-protocol/blob/master/CONTEXT.md)
+- [Security policy](https://github.com/Misty4119/node-minecraft-protocol/blob/master/SECURITY.md)
+- [Code of Conduct](https://github.com/Misty4119/node-minecraft-protocol/blob/master/CODE_OF_CONDUCT.md)
+- [API reference](./API.md) and the [PrismarineJS contribution guide](https://github.com/PrismarineJS/prismarine-contribute)
+
+The source tree on the master branch includes Java 26.2 (protocol 776) and 26.3 (protocol 777), with 26.3 as the default. Those commits are newer than the current published npm version, so npm install alone does not reproduce this fork's 26.2/26.3 source. Cross-repository validation uses the sibling PrismarineJS checkouts documented in CONTEXT.md.
+
+### Development
+
+The package requires Node.js 22 or newer.
+
+    npm install
+    npm run lint
+    npm test
+
+Protocol schemas and version metadata come from minecraft-data. Keep src/version.js, serializers, transforms, and regression tests aligned when changing a wire format. Use offline fixtures or local servers for tests that do not require an account.
 ## Features
 
  * Supports Minecraft PC version
@@ -96,7 +117,7 @@ client.on('playerChat', function (ev) {
     : ev.unsignedChat
       ? JSON.parse(ev.unsignedContent)
       : ev.plainMessage
-  const jsonMsg = JSON.parse(packet.message)
+
   if (ev.senderName === client.username) return
   client.chat(JSON.stringify(content))
 });
