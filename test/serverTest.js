@@ -541,7 +541,9 @@ for (const supportedVersion of mc.supportedVersions) {
         client.writeBundle([
           ['update_time', version.majorVersion === '26.2'
             ? { gameTime: [0, 2], clockUpdates: [] }
-            : { age: 1, time: 2 }],
+            : version.majorVersion === '26.3'
+              ? { age: 1, clockUpdates: [] }
+              : { age: 1, time: 2 }],
           ['close_window', { windowId: 0 }]
         ])
       })

@@ -18,6 +18,7 @@ module.exports = {
       }
     }],
     compressedNbt: ['native', minecraft.compressedNbt[0]],
+    entityDelta: ['native', minecraft.entityDelta[0]],
     entityMetadataLoop: ['parametrizable', (compiler, { type, endVal }) => {
       let code = 'let cursor = offset\n'
       code += 'const data = []\n'
@@ -85,6 +86,7 @@ if (n !== 0) {
       return offset + value.length
     }],
     compressedNbt: ['native', minecraft.compressedNbt[1]],
+    entityDelta: ['native', minecraft.entityDelta[1]],
     entityMetadataLoop: ['parametrizable', (compiler, { type, endVal }) => {
       let code = 'for (const i in value) {\n'
       code += '  offset = ' + compiler.callType('value[i]', type) + '\n'
@@ -146,6 +148,7 @@ return offset
       return value.length
     }],
     compressedNbt: ['native', minecraft.compressedNbt[2]],
+    entityDelta: ['native', minecraft.entityDelta[2]],
     entityMetadataLoop: ['parametrizable', (compiler, { type }) => {
       let code = 'let size = 1\n'
       code += 'for (const i in value) {\n'

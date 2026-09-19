@@ -14,12 +14,13 @@ const createDecipher = require('./transforms/encryption').createDecipher
 const closeTimeout = 30 * 1000
 
 class Client extends EventEmitter {
-  constructor (isServer, version, customPackets, hideErrors = false) {
+  constructor (isServer, version, customPackets, hideErrors = false, maxPacketSize) {
     super()
     this.customPackets = customPackets
     this.version = version
     this.isServer = !!isServer
-    this.splitter = framing.createSplitter()
+    this.maxPacketSize = require('./packetLimits').validateMaxPacketSize(maxPacketSize)
+    this.splitter = framing.createSplitter({ maxPacketSize: this.maxPacketSize })
     this.packetsToParse = {}
     this.compressor = null
     this.framer = framing.createFramer()
@@ -171,6 +172,7 @@ class Client extends EventEmitter {
     const onFatalError = (err) => {
       this.emit('error', err)
       endSocket()
+      if (this.socket && !this.socket.destroyed) this.socket.destroy()
     }
 
     const onError = (err) => this.emit('error', err)
@@ -186,7 +188,7 @@ class Client extends EventEmitter {
     this.socket.on('end', endSocket)
     this.socket.on('timeout', endSocket)
     this.framer.on('error', onError)
-    this.splitter.on('error', onError)
+    this.splitter.on('error', onFatalError)
 
     this.socket.pipe(this.splitter)
     this.framer.pipe(this.socket)
@@ -227,8 +229,11 @@ class Client extends EventEmitter {
       this.compressor.on('error', (err) => this.emit('error', err))
       this.serializer.unpipe(this.framer)
       this.serializer.pipe(this.compressor).pipe(this.framer)
-      this.decompressor = compression.createDecompressor(threshold, this.hideErrors)
-      this.decompressor.on('error', (err) => this.emit('error', err))
+      this.decompressor = compression.createDecompressor(threshold, this.hideErrors, this.maxPacketSize)
+      this.decompressor.on('error', (err) => {
+        this.emit('error', err)
+        if (this.socket && !this.socket.destroyed) this.socket.destroy()
+      })
       this.splitter.unpipe(this.deserializer)
       this.splitter.pipe(this.decompressor).pipe(this.deserializer)
     } else {

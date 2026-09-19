@@ -6,9 +6,10 @@ const Client = require('./client')
 const states = require('./states')
 const nbt = require('prismarine-nbt')
 const { createSerializer } = require('./transforms/serializer')
+const { validateMaxPacketSize } = require('./packetLimits')
 
 class Server extends EventEmitter {
-  constructor (version, customPackets, hideErrors = false) {
+  constructor (version, customPackets, hideErrors = false, maxPacketSize) {
     super()
     this.version = version
     this.socketServer = null
@@ -17,6 +18,7 @@ class Server extends EventEmitter {
     this.clients = {}
     this.customPackets = customPackets
     this.hideErrors = hideErrors
+    this.maxPacketSize = validateMaxPacketSize(maxPacketSize)
     this.serializer = createSerializer({ state: 'play', isServer: true, version, customPackets })
   }
 
@@ -25,7 +27,7 @@ class Server extends EventEmitter {
     let nextId = 0
     self.socketServer = net.createServer()
     self.socketServer.on('connection', socket => {
-      const client = new Client(true, this.version, this.customPackets, this.hideErrors)
+      const client = new Client(true, this.version, this.customPackets, this.hideErrors, this.maxPacketSize)
       client._end = client.end
       client.end = function end (endReason, fullReason) {
         if (client.state === states.PLAY) {

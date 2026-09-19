@@ -13,7 +13,7 @@ type PromiseLike = Promise<void> | void
 
 declare module 'minecraft-protocol' {
 	export class Client extends EventEmitter {
-		constructor(isServer: boolean, version: string, customPackets?: any)
+		constructor(isServer: boolean, version: string, customPackets?: any, hideErrors?: boolean, maxPacketSize?: number)
 		state: States
 		isServer: boolean
 		socket: Socket
@@ -24,6 +24,7 @@ declare module 'minecraft-protocol' {
 		deserializer: FullPacketParser
 		serializer: Serializer
 		latency: number
+		maxPacketSize: number
 		customPackets: any
 		protocolVersion: number
 		version: string
@@ -140,6 +141,8 @@ declare module 'minecraft-protocol' {
 		version?: string
 		customPackets?: any
 		hideErrors?: boolean
+		/** Maximum framed or decompressed packet size in bytes. Defaults to 16 MiB. */
+		maxPacketSize?: number
 		skipValidation?: boolean
 		stream?: Stream
 		connect?: (client: Client) => void
@@ -158,7 +161,8 @@ declare module 'minecraft-protocol' {
 	}
 
 	export class Server extends EventEmitter {
-		constructor(version: string, customPackets?: any)
+		constructor(version: string, customPackets?: any, hideErrors?: boolean, maxPacketSize?: number)
+		maxPacketSize: number
 		writeToClients(clients: Client[], name: string, params: any): void
 		onlineModeExceptions: object
 		clients: { [key: number]: ServerClient }
@@ -207,6 +211,8 @@ declare module 'minecraft-protocol' {
 		customPackets?: any
 		errorHandler?: (client: Client, error: Error) => void
 		hideErrors?: boolean
+		/** Maximum framed or decompressed packet size in bytes. Defaults to 16 MiB. */
+		maxPacketSize?: number
 		agent?: Agent
 		validateChannelProtocol?: boolean
 		/** (1.19+) Require connecting clients to have chat signing support enabled */

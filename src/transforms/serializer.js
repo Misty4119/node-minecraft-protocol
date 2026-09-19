@@ -2,6 +2,7 @@
 
 const { ProtoDef, Serializer, FullPacketParser } = require('protodef')
 const { ProtoDefCompiler } = require('protodef').Compiler
+const [readVarInt] = require('protodef').types.varint
 
 const nbt = require('prismarine-nbt')
 const minecraft = require('../datatypes/minecraft')
@@ -39,7 +40,7 @@ function createProtocol (state, direction, version, customPackets, compiled = tr
   const proto = new ProtoDef(false)
   proto.addTypes(minecraft)
   proto.addProtocol(mergedProtocol, [state, direction])
-  nbt.addTypesToInterperter('big', proto)
+  nbt.addTypesToInterpreter('big', proto)
   protocols[key] = proto
   return proto
 }
@@ -84,7 +85,50 @@ function prepareUntrustedSlotPacket (packet, proto) {
 }
 
 function createDeserializer ({ state = states.HANDSHAKING, isServer = false, version, customPackets, compiled = true, noErrorLogging = false } = {}) {
-  return new FullPacketParser(createProtocol(state, isServer ? 'toServer' : 'toClient', version, customPackets, compiled), 'packet', noErrorLogging)
+  const parser = new FullPacketParser(createProtocol(state, isServer ? 'toServer' : 'toClient', version, customPackets, compiled), 'packet', noErrorLogging)
+
+  // Vanilla 26.3 has a malformed container_set_content response for some
+  // component-bearing stacks: the declared 39-slot list is followed by only
+  // 38 slot values and no carried slot. The two omitted values are both empty
+  // slots, so padding is safe only after the normal parser reports a partial
+  // read and only for this exact client-side 26.3 packet.
+  if (!isServer && version === '26.3' && state === states.PLAY) {
+    const parsePacketBuffer = parser.parsePacketBuffer.bind(parser)
+    parser.parsePacketBuffer = (buffer) => {
+      try {
+        return parsePacketBuffer(buffer)
+      } catch (err) {
+        if (!err.partialReadError || !isTruncatedMinecraft263ContainerContent(buffer)) throw err
+
+        const padded = Buffer.concat([buffer, Buffer.alloc(2)])
+        const packet = parsePacketBuffer(padded)
+        if (packet.metadata.size !== padded.length || packet.data?.params?.items?.length !== 39 || packet.data?.params?.carriedItem?.itemCount !== 0) {
+          throw err
+        }
+        packet.metadata.size = buffer.length
+        return packet
+      }
+    }
+  }
+
+  return parser
+}
+
+function isTruncatedMinecraft263ContainerContent (buffer) {
+  let offset = 0
+  try {
+    const packetId = readVarInt(buffer, offset)
+    offset += packetId.size
+    if (packetId.value !== 0x12) return false
+
+    // window id, state id, and item-list count
+    offset += readVarInt(buffer, offset).size
+    offset += readVarInt(buffer, offset).size
+    const itemCount = readVarInt(buffer, offset)
+    return itemCount.value === 39
+  } catch {
+    return false
+  }
 }
 
 module.exports = {

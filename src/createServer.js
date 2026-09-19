@@ -37,7 +37,7 @@ function createServer (options = {}) {
   const mcversion = mcData.version
   const hideErrors = options.hideErrors || false
 
-  const server = new Server(mcversion.minecraftVersion, customPackets, hideErrors)
+  const server = new Server(mcversion.minecraftVersion, customPackets, hideErrors, options.maxPacketSize)
   server.mcversion = mcversion
   server.motd = motd
   server.motdMsg = motdMsg

@@ -29,6 +29,7 @@ automatically logged in and validated against mojang's auth.
  * errorHandler : A way to override the default error handler for client errors. A function that takes a Client and an error.
  The default kicks the client.
  * hideErrors : do not display errors, default to false
+ * maxPacketSize : maximum framed or decompressed packet size in bytes. Defaults to 16 MiB.
  * agent : a http agent that can be used to set proxy settings for yggdrasil authentication confirmation (see proxy-agent on npm)
  * validateChannelProtocol (optional) : whether or not to enable protocol validation for custom protocols using plugin channels for the connected clients. Defaults to true
  * enforceSecureProfile (optional) : Kick clients that do not have chat signing keys from Mojang (1.19+)
@@ -133,6 +134,7 @@ Returns a `Client` instance and perform login.
  * version : 1.8 or 1.9 or false (to auto-negotiate): default to 1.8
  * customPackets (optional) : an object index by version/state/direction/name, see client_custom_packet for an example
  * hideErrors : do not display errors, default to false
+ * maxPacketSize : maximum framed or decompressed packet size in bytes. Defaults to 16 MiB.
  * skipValidation : do not try to validate given session, defaults to false
  * stream : a stream to use as connection
  * connect : a function taking the client as parameter and that should client.setSocket(socket)
