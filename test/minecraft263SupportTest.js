@@ -63,4 +63,35 @@ describe('Minecraft Java 26.3 protocol support', function () {
     assert.deepStrictEqual(parsed.data.params.carriedItem, { itemCount: 0 })
     assert.strictEqual(parsed.metadata.size, packet.length)
   })
+
+  it('consumes the 26.3 team and explosion packet tails', function () {
+    const deserialize = minecraftProtocol.createDeserializer({ state: 'play', version: '26.3', noErrorLogging: true })
+    const teamPacket = Buffer.from('6f0474657374000800047465737408000008000000000102030107666c6174626f74', 'hex')
+    const explosionPacket = Buffer.from('243fe0000000000000c04d8000000000003ff800000000000040c00000000005ee0100000000000000003fc7ccbdad2fe204bfd331802e5a08d31dc00502453f0000003f80000001483f8000003f8000000101', 'hex')
+
+    const team = deserialize.parsePacketBuffer(teamPacket)
+    const explosion = deserialize.parsePacketBuffer(explosionPacket)
+
+    assert.strictEqual(team.metadata.size, teamPacket.length)
+    assert.deepStrictEqual(team.data.params.players, ['flatbot'])
+    assert.strictEqual(team.data.params.color, 2)
+    assert.strictEqual(explosion.metadata.size, explosionPacket.length)
+    assert.strictEqual(explosion.data.params.playSound, true)
+  })
+
+  it('round-trips the 26.3 use_entity interaction flag', function () {
+    const serialize = minecraftProtocol.createSerializer({ state: 'play', version: '26.3' })
+    const deserialize = minecraftProtocol.createDeserializer({ state: 'play', isServer: true, version: '26.3', noErrorLogging: true })
+    const packet = serialize.createPacketBuffer({
+      name: 'use_entity',
+      params: {
+        target: 1,
+        hand: 'main_hand',
+        location: { x: 0, y: 0, z: 0 },
+        usingSecondaryAction: true
+      }
+    })
+
+    assert.strictEqual(deserialize.parsePacketBuffer(packet).data.params.usingSecondaryAction, true)
+  })
 })
