@@ -25,7 +25,15 @@ function createProtocol (state, direction, version, customPackets, compiled = tr
     throw new Error(`Unsupported protocol version '${versionInfo.version}' (attempted to use '${mcData.version.version}' data); try updating your packages with 'npm update'`)
   }
 
-  const mergedProtocol = merge(mcData.protocol, customPackets?.[mcData.version.majorVersion] ?? {})
+  const mergedProtocol = merge({}, mcData.protocol, customPackets?.[mcData.version.majorVersion] ?? {})
+
+  if (mcData.version.majorVersion === '26.3') {
+    const matcherType = mergedProtocol.types?.DataComponentMatchers
+    const partialMatchers = matcherType?.[0] === 'container' && matcherType[1]
+      .find(field => field.name === 'partialMatchers')
+    if (!partialMatchers) throw new Error('26.3 protocol is missing DataComponentMatchers.partialMatchers')
+    partialMatchers.type = ['PartialComponentMatcherArray', {}]
+  }
 
   if (compiled) {
     const compiler = new ProtoDefCompiler()

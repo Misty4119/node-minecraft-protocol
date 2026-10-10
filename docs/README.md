@@ -1,6 +1,6 @@
 # minecraft protocol
 [![NPM version](https://img.shields.io/npm/v/minecraft-protocol.svg)](https://www.npmjs.com/package/minecraft-protocol)
-[![Build Status](https://github.com/PrismarineJS/node-minecraft-protocol/workflows/CI/badge.svg)](https://github.com/PrismarineJS/node-minecraft-protocol/actions?query=workflow%3A%22CI%22)
+[![Build Status](https://github.com/Misty4119/node-minecraft-protocol/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Misty4119/node-minecraft-protocol/actions/workflows/ci.yml?query=branch%3Amaster)
 [![Discord](https://img.shields.io/badge/chat-on%20discord-brightgreen.svg)](https://discord.gg/GsEFRM8)
 [![Gitter](https://img.shields.io/badge/chat-on%20gitter-brightgreen.svg)](https://gitter.im/PrismarineJS/general)
 [![Irc](https://img.shields.io/badge/chat-on%20irc-brightgreen.svg)](https://irc.gitter.im/)
@@ -17,9 +17,10 @@ This repository's canonical README is this file. The root README.md is ignored a
 - [Repository context](https://github.com/Misty4119/node-minecraft-protocol/blob/master/CONTEXT.md)
 - [Security policy](https://github.com/Misty4119/node-minecraft-protocol/blob/master/SECURITY.md)
 - [Code of Conduct](https://github.com/Misty4119/node-minecraft-protocol/blob/master/CODE_OF_CONDUCT.md)
+- [Contributor guide](../CONTRIBUTING.md)
 - [API reference](./API.md) and the [PrismarineJS contribution guide](https://github.com/PrismarineJS/prismarine-contribute)
 
-The source tree on the master branch includes Java 26.2 (protocol 776) and 26.3 (protocol 777), with 26.3 as the default. Those commits are newer than the current published npm version, so npm install alone does not reproduce this fork's 26.2/26.3 source. Cross-repository validation uses the sibling PrismarineJS checkouts documented in CONTEXT.md.
+The source tree supports Java 26.2 (protocol 776) and 26.3 (protocol 777), with 26.3 as the default. The current published npm package is 1.68.0 and predates these source changes, so installing it alone does not provide 26.2/26.3 support. CI builds `minecraft-data` merge `1d37505b338710f2f347aa00efaa48a054754b19` through `node-minecraft-data` before running the supported-version matrix. Local cross-repository validation uses the sibling PrismarineJS checkouts described in [CONTEXT.md](../CONTEXT.md).
 
 ### Development
 
@@ -29,7 +30,7 @@ The package requires Node.js 22 or newer.
     npm run lint
     npm test
 
-Protocol schemas and version metadata come from minecraft-data. Keep src/version.js, serializers, transforms, and regression tests aligned when changing a wire format. Use offline fixtures or local servers for tests that do not require an account.
+Protocol schemas and version metadata come from minecraft-data. Keep `src/version.js`, serializers, transforms, and regression tests aligned when changing a wire format. Use the [contributor guide](../CONTRIBUTING.md) for schema-generation, focused-test, and cross-repository SHA steps. Use offline fixtures or local servers for tests that do not require an account.
 ## Features
 
  * Supports Minecraft PC version

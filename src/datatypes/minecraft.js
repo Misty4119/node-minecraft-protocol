@@ -14,9 +14,126 @@ module.exports = {
   entityDelta: [readEntityDelta, writeEntityDelta, sizeOfEntityDelta],
   entityMetadataLoop: [readEntityMetadata, writeEntityMetadata, sizeOfEntityMetadata],
   topBitSetTerminatedArray: [readTopBitSetTerminatedArray, writeTopBitSetTerminatedArray, sizeOfTopBitSetTerminatedArray],
+  registryEntryHolder: [readRegistryEntryHolder, writeRegistryEntryHolder, sizeOfRegistryEntryHolder],
+  registryEntryHolderSet: [readRegistryEntryHolderSet, writeRegistryEntryHolderSet, sizeOfRegistryEntryHolderSet],
+  PartialComponentMatcherArray: [readPartialComponentMatcherArray, writePartialComponentMatcherArray, sizeOfPartialComponentMatcherArray],
   lpVec3: [readLpVec3, writeLpVec3, sizeOfLpVec3]
 }
 const PartialReadError = require('protodef').utils.PartialReadError
+const MAX_PARTIAL_COMPONENT_MATCHERS = 64
+
+function validatePartialComponentMatcherCount (count) {
+  if (!Number.isInteger(count) || count < 0 || count > MAX_PARTIAL_COMPONENT_MATCHERS) {
+    throw new RangeError(`partial component matcher count must be between 0 and ${MAX_PARTIAL_COMPONENT_MATCHERS}`)
+  }
+}
+
+function readPartialComponentMatcherArray (buffer, offset, opts, rootNode) {
+  const { value: count, size: countSize } = readVarInt(buffer, offset)
+  validatePartialComponentMatcherCount(count)
+
+  const values = []
+  let size = countSize
+  for (let i = 0; i < count; i++) {
+    const entry = this.read(buffer, offset + size, 'PartialComponentMatcher', rootNode)
+    values.push(entry.value)
+    size += entry.size
+  }
+  return { value: values, size }
+}
+
+function writePartialComponentMatcherArray (value, buffer, offset, opts, rootNode) {
+  if (!Array.isArray(value)) throw new TypeError('partial component matchers must be an array')
+  validatePartialComponentMatcherCount(value.length)
+
+  let cursor = writeVarInt(value.length, buffer, offset)
+  for (const entry of value) cursor = this.write(entry, buffer, cursor, 'PartialComponentMatcher', rootNode)
+  return cursor
+}
+
+function sizeOfPartialComponentMatcherArray (value, opts, rootNode) {
+  if (!Array.isArray(value)) throw new TypeError('partial component matchers must be an array')
+  validatePartialComponentMatcherCount(value.length)
+
+  let size = sizeOfVarInt(value.length)
+  for (const entry of value) size += this.sizeOf(entry, 'PartialComponentMatcher', rootNode)
+  return size
+}
+
+function readRegistryEntryHolder (buffer, offset, opts, rootNode) {
+  const { value: id, size: idSize } = readVarInt(buffer, offset)
+  if (id !== 0) return { value: { [opts.baseName]: id - 1 }, size: idSize }
+
+  const holder = this.read(buffer, offset + idSize, opts.otherwise.type, rootNode)
+  return {
+    value: { [opts.otherwise.name]: holder.value },
+    size: idSize + holder.size
+  }
+}
+
+function writeRegistryEntryHolder (value, buffer, offset, opts, rootNode) {
+  if (value[opts.baseName] != null) {
+    return writeVarInt(value[opts.baseName] + 1, buffer, offset)
+  }
+
+  const holder = value[opts.otherwise.name]
+  if (holder === undefined) throw new Error(`registryEntryHolder requires "${opts.baseName}" or "${opts.otherwise.name}"`)
+  offset = writeVarInt(0, buffer, offset)
+  return this.write(holder, buffer, offset, opts.otherwise.type, rootNode)
+}
+
+function sizeOfRegistryEntryHolder (value, opts, rootNode) {
+  if (value[opts.baseName] != null) return sizeOfVarInt(value[opts.baseName] + 1)
+
+  const holder = value[opts.otherwise.name]
+  if (holder === undefined) throw new Error(`registryEntryHolder requires "${opts.baseName}" or "${opts.otherwise.name}"`)
+  return sizeOfVarInt(0) + this.sizeOf(holder, opts.otherwise.type, rootNode)
+}
+
+function readRegistryEntryHolderSet (buffer, offset, opts, rootNode) {
+  const { value: count, size: countSize } = readVarInt(buffer, offset)
+  if (count === 0) {
+    const holder = this.read(buffer, offset + countSize, opts.base.type, rootNode)
+    return {
+      value: { [opts.base.name]: holder.value },
+      size: countSize + holder.size
+    }
+  }
+
+  const values = []
+  let size = countSize
+  for (let i = 0; i < count - 1; i++) {
+    const holder = this.read(buffer, offset + size, opts.otherwise.type, rootNode)
+    values.push(holder.value)
+    size += holder.size
+  }
+  return { value: { [opts.otherwise.name]: values }, size }
+}
+
+function writeRegistryEntryHolderSet (value, buffer, offset, opts, rootNode) {
+  if (value[opts.base.name] != null) {
+    offset = writeVarInt(0, buffer, offset)
+    return this.write(value[opts.base.name], buffer, offset, opts.base.type, rootNode)
+  }
+
+  const values = value[opts.otherwise.name]
+  if (values === undefined) throw new Error(`registryEntryHolderSet requires "${opts.base.name}" or "${opts.otherwise.name}"`)
+  offset = writeVarInt(values.length + 1, buffer, offset)
+  for (const holder of values) offset = this.write(holder, buffer, offset, opts.otherwise.type, rootNode)
+  return offset
+}
+
+function sizeOfRegistryEntryHolderSet (value, opts, rootNode) {
+  if (value[opts.base.name] != null) {
+    return sizeOfVarInt(0) + this.sizeOf(value[opts.base.name], opts.base.type, rootNode)
+  }
+
+  const values = value[opts.otherwise.name]
+  if (values === undefined) throw new Error(`registryEntryHolderSet requires "${opts.base.name}" or "${opts.otherwise.name}"`)
+  let size = sizeOfVarInt(values.length + 1)
+  for (const holder of values) size += this.sizeOf(holder, opts.otherwise.type, rootNode)
+  return size
+}
 
 function readVarLong (buffer, offset) {
   return readVarInt(buffer, offset)
