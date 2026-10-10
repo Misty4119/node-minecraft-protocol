@@ -87,5 +87,9 @@ jobs:
     - name: Install exact minecraft-data runtime
       run: npm install --no-save --package-lock=false ./node-mcdata
 
+    - name: Run 26.3 component matcher regression
+      if: matrix.mcVersion == '26.3'
+      run: npx mocha test/minecraft263SupportTest.js --exit
+
     - name: Run tests
       run: npm run mochaTest -- -g ${{ matrix.mcVersion }}v

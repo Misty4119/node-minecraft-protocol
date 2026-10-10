@@ -28,6 +28,7 @@ jobs:
           await github.rest.repos.createRelease({
             owner: context.repo.owner,
             repo: context.repo.repo,
+            target_commitish: context.sha,
             tag_name: process.env.RELEASE_VERSION,
             name: `Release ${process.env.RELEASE_VERSION}`,
             body: process.env.RELEASE_VERSION,
