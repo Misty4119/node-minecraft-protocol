@@ -8,6 +8,9 @@ on:
     branches:
       - master
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref_name }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
@@ -16,9 +19,9 @@ jobs:
   Lint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Use Node.js 24.x
-      uses: actions/setup-node@v1.4.4
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: 24.x
     - run: npm i && npm run lint
@@ -28,9 +31,9 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Use Node.js 24.x
-      uses: actions/setup-node@v1.4.4
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: 24.x
     - id: set-matrix
@@ -47,18 +50,46 @@ jobs:
       fail-fast: false
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Use Node.js 24.x
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: 24.x
     - name: Setup Java JDK
-      uses: actions/setup-java@v1.4.3
+      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
       with:
         java-version: '25'
-        distribution: 'adopt'
+        distribution: 'temurin'
+
+    - name: Check out node-minecraft-data runtime
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: PrismarineJS/node-minecraft-data
+        ref: 308134a8020139d49ceb851c97713ae15b745192
+        submodules: recursive
+        path: node-mcdata
+    - name: Replace its data submodule with the T01 merge
+      run: rm -rf node-mcdata/minecraft-data
+    - name: Check out T01 minecraft-data merge
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: Misty4119/minecraft-data
+        ref: 1d37505b338710f2f347aa00efaa48a054754b19
+        path: node-mcdata/minecraft-data
+    - name: Prepare exact minecraft-data runtime
+      run: |
+        npm install
+        npm run prepare
+      working-directory: node-mcdata
+
     - name: Install dependencies
       run: npm install
+    - name: Install exact minecraft-data runtime
+      run: npm install --no-save --package-lock=false ./node-mcdata
+
+    - name: Run 26.3 component matcher regression
+      if: matrix.mcVersion == '26.3'
+      run: npx mocha test/minecraft263SupportTest.js --exit
 
     - name: Run tests
       run: npm run mochaTest -- -g ${{ matrix.mcVersion }}v

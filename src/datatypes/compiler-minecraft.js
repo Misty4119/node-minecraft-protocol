@@ -72,6 +72,18 @@ if (n !== 0) {
   }
     `.trim())
     }],
+    PartialComponentMatcherArray: ['parametrizable', (compiler) => compiler.wrapCode(`
+const count = ${compiler.callType('varint')}
+if (count.value < 0 || count.value > 64) throw new RangeError('partial component matcher count must be between 0 and 64')
+const values = []
+let cursor = offset + count.size
+for (let i = 0; i < count.value; i++) {
+  const entry = ${compiler.callType('PartialComponentMatcher', 'cursor')}
+  values.push(entry.value)
+  cursor += entry.size
+}
+return { value: values, size: cursor - offset }
+    `.trim())],
     lpVec3: ['native', minecraft.lpVec3[0]]
   },
   Write: {
@@ -139,6 +151,15 @@ if (${baseName} != null) {
 return offset
     `.trim())
     }],
+    PartialComponentMatcherArray: ['parametrizable', (compiler) => compiler.wrapCode(`
+if (!Array.isArray(value)) throw new TypeError('partial component matchers must be an array')
+if (value.length > 64) throw new RangeError('partial component matcher count must be between 0 and 64')
+offset = ${compiler.callType('value.length', 'varint')}
+for (let i = 0; i < value.length; i++) {
+  offset = ${compiler.callType('value[i]', 'PartialComponentMatcher')}
+}
+return offset
+    `.trim())],
     lpVec3: ['native', minecraft.lpVec3[1]]
   },
   SizeOf: {
@@ -200,6 +221,15 @@ if (${baseName} != null) {
 return size
       `.trim())
     }],
+    PartialComponentMatcherArray: ['parametrizable', (compiler) => compiler.wrapCode(`
+if (!Array.isArray(value)) throw new TypeError('partial component matchers must be an array')
+if (value.length > 64) throw new RangeError('partial component matcher count must be between 0 and 64')
+let size = ${compiler.callType('value.length', 'varint')}
+for (let i = 0; i < value.length; i++) {
+  size += ${compiler.callType('value[i]', 'PartialComponentMatcher')}
+}
+return size
+    `.trim())],
     lpVec3: ['native', minecraft.lpVec3[2]]
   }
 }

@@ -57,6 +57,23 @@ const nbtValue = {
 
 function getFixedPacketPayload (version, packetName) {
   if (packetName === 'teams') {
+    if (version.majorVersion === '26.3') {
+      return {
+        team: 'test_team',
+        mode: 'add',
+        displayName: nbtValue,
+        prefix: nbtValue,
+        suffix: nbtValue,
+        nameTagVisibility: 'always',
+        collisionRule: 'always',
+        color: 0,
+        flags: {
+          friendly_fire: 1,
+          see_friendly_invisible: 1
+        },
+        players: ['player1', 'player2']
+      }
+    }
     if (version.majorVersion === '26.2') {
       return {
         team: 'test_team',
@@ -273,8 +290,11 @@ const values = {
     removeComponents: []
   },
   SlotComponent: {
-    type: 'tooltip_display',
-    data: { hideTooltip: true, hiddenComponents: [] }
+    // Use a component supported since 1.20.5. tooltip_display was added in
+    // 1.21.5; using it for older trade-list item matchers makes their switch
+    // encoder emit an invalid default component id and shifts the packet.
+    type: 'max_damage',
+    data: 1
   },
   ChatTypes: {
     registryIndex: 1

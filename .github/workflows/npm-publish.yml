@@ -12,23 +12,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@master
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - name: Set up Node.js
-      uses: actions/setup-node@master
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version: 24
         registry-url: 'https://registry.npmjs.org'
     - id: publish
-      uses: JS-DevTools/npm-publish@v4
+      uses: JS-DevTools/npm-publish@0fd2f4369c5d6bcfcde6091a7c527d810b9b5c3f # v4
     - name: Create Release
       if: ${{ steps.publish.outputs.type }}
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
       with:
-        tag_name: ${{ steps.publish.outputs.version }}
-        release_name: Release ${{ steps.publish.outputs.version }}
-        body: ${{ steps.publish.outputs.version }}
-        draft: false
-        prerelease: false
+        script: |
+          await github.rest.repos.createRelease({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            target_commitish: context.sha,
+            tag_name: process.env.RELEASE_VERSION,
+            name: `Release ${process.env.RELEASE_VERSION}`,
+            body: process.env.RELEASE_VERSION,
+            draft: false,
+            prerelease: false
+          })
+      env:
+        RELEASE_VERSION: ${{ steps.publish.outputs.version }}
